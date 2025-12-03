@@ -5,6 +5,7 @@ import com.yx.yuojcodesandbox.model.ExecuteMessage;
 import org.springframework.util.StopWatch;
 
 import java.io.*;
+import java.util.ArrayList;
 
 /**
  * 进程工具类
@@ -46,14 +47,16 @@ public class ProcessUtils {
                 System.out.println(opName + "失败，错误码： " + exitValue);
                 // 分批获取进程的正常输出
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(runProcess.getInputStream()));
-                StringBuilder compileOutputStringBuilder = new StringBuilder();
+                ArrayList<String> compileOutputList = new ArrayList<>();
                 // 逐行读取
                 String compileOutputLine;
                 while ((compileOutputLine = bufferedReader.readLine()) != null) {
-                    compileOutputStringBuilder.append(compileOutputLine);
+                    compileOutputList.add(compileOutputLine);
                 }
                 // 设置正常输出
-                executeMessage.setMessage(compileOutputStringBuilder.toString());
+                if(compileOutputList.size()>0){
+                    executeMessage.setMessage(StrUtil.toString(compileOutputList));
+                }
                 System.out.println(executeMessage);
 
                 // 分批获取进程的错误输出

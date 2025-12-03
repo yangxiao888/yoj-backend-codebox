@@ -189,7 +189,9 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
             }
 
             //正常执行
-            outputList.add(executeMessage.getMessage());
+            if(StrUtil.isNotEmpty(executeMessage.getMessage())){
+                outputList.add(executeMessage.getMessage());
+            }
             Long time = executeMessage.getTime();
             if (time != null) {
                 maxTime = Math.max(maxTime, time);
