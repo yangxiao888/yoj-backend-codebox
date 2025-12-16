@@ -30,12 +30,16 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class JavaDockerCodeSandboxTemplate extends CodeSandboxTemplate {
 
-
+    //超时时间
     private static final long TIME_OUT = 5000L;
 
+    //dockerJava客户端
+    DockerClient dockerClient;
 
-    DockerClient dockerClient;//dockerjava客户端
-    String containerId;//容器id
+    //容器id
+    String containerId;
+
+
     /**
      * 重写第三步 docker容器运行方法
      * @param inputList
@@ -44,6 +48,7 @@ public class JavaDockerCodeSandboxTemplate extends CodeSandboxTemplate {
      */
     @Override
     public List<ExecuteMessage> runFile(List<String> inputList, File userCodeFile) {
+        //获取用户代码的父目录/文件夹路径
         String userCodeParentPath = userCodeFile.getParentFile().getAbsolutePath();
         //拉取镜像，创建容器、上传编译代码
         //创建docker客户端
@@ -74,18 +79,19 @@ public class JavaDockerCodeSandboxTemplate extends CodeSandboxTemplate {
 
         //创建容器
         CreateContainerCmd containerCmd = dockerClient.createContainerCmd(image);
+        //主机限制
         HostConfig hostConfig = new HostConfig();
-        hostConfig.withMemory(100 * 1000 * 1000L);
-        hostConfig.withCpuCount(1L);
-        hostConfig.setBinds(new Bind(userCodeParentPath, new Volume("/app")));
+        hostConfig.withMemory(100 * 1000 * 1000L);//设置内存限制
+        hostConfig.withCpuCount(1L);//设置cpu限制
+        hostConfig.setBinds(new Bind(userCodeParentPath, new Volume("/app")));//设置文件映射
         //hostConfig.setBinds(new Bind(SECURITY_MANAGER_PATH, new Volume("/app/securityManager")));//Java 安全管理器
         //hostConfig.withSecurityOpts(Arrays.asList("seccomp=" + ResourceUtil.readUtf8Str("profile.json")));//seccomp安全管理措施
 
         CreateContainerResponse createContainerResponse = containerCmd
-                .withHostConfig(hostConfig)//可限制内存、cpu等资源并能设置文件映射
-                .withNetworkDisabled(true)//限制网络
+                .withHostConfig(hostConfig)//主机限制：可限制内存、cpu等资源并能设置文件映射
+                .withNetworkDisabled(true)//限制网络（禁用）
                 .withReadonlyRootfs(true)//限制向 root 目录下写文件
-                .withTty(true)
+                .withTty(true)//创建可 交互式 的容器以防止 一个提交中的每一个测试用例都创建一个容器
                 .withAttachStderr(true)
                 .withAttachStdout(true)
                 .withAttachStdin(true)
@@ -119,6 +125,7 @@ public class JavaDockerCodeSandboxTemplate extends CodeSandboxTemplate {
                     .withAttachStdout(true)
                     .exec();
             System.out.println("创建执行命令" + execCreateCmdResponse);
+            //获取执行命令的id
             String execID = execCreateCmdResponse.getId();
 
 
@@ -148,32 +155,19 @@ public class JavaDockerCodeSandboxTemplate extends CodeSandboxTemplate {
             // 获取占用的内存
             StatsCmd statsCmd = dockerClient.statsCmd(containerId);
             statsCmd.exec(new ResultCallback<Statistics>() {
-
                 @Override
                 public void onNext(Statistics statistics) {
                     //System.out.println("内存占用：" + statistics.getMemoryStats().getUsage());
                     maxMemory[0] = Math.max(statistics.getMemoryStats().getUsage(), maxMemory[0]);
                 }
-
                 @Override
-                public void close() throws IOException {
-
-                }
-
+                public void close() throws IOException {}
                 @Override
-                public void onStart(Closeable closeable) {
-
-                }
-
+                public void onStart(Closeable closeable) {}
                 @Override
-                public void onError(Throwable throwable) {
-
-                }
-
+                public void onError(Throwable throwable) {}
                 @Override
-                public void onComplete() {
-
-                }
+                public void onComplete() {}
             });
             statsCmd.close();
             try {
@@ -181,13 +175,15 @@ public class JavaDockerCodeSandboxTemplate extends CodeSandboxTemplate {
                 StopWatch stopWatch = new StopWatch();
                 stopWatch.start();
 
+                //启动命令，开始执行
                 dockerClient.execStartCmd(execID)
                         .exec(execStartResultCallback)
-                        .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
+                        .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);//设置超时时间
 
-                statsCmd.close();
                 stopWatch.stop();
+                statsCmd.close();
                 time = stopWatch.getLastTaskTimeMillis();
+                //设置执行结果信息对象
                 executeMessage.setErrorMessage(errorMessage[0]);
                 executeMessage.setMessage(message[0]);
                 executeMessage.setTime(time);

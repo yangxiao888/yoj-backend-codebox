@@ -159,6 +159,7 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
                 }).start();
 
                 ExecuteMessage executeMessage = ProcessUtils.runProcessAndGetMessage(runProcess, "运行");
+                //交互式执行进程并获取信息（new Scanner(System.in);）
                 //ExecuteMessage executeMessage = ProcessUtils.runInteractProcessAndGetMessage(runProcess, inputArgs,"运行");
                 executeMessageList.add(executeMessage);
             } catch (IOException e) {
@@ -175,6 +176,7 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
      * @return executeCodeResponse
      */
     public ExecuteCodeResponse getOutputResponse(List<ExecuteMessage> executeMessageList){
+        //创建返回对象
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
 
         ArrayList<String> outputList = new ArrayList<>();
@@ -183,8 +185,9 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
         for (ExecuteMessage executeMessage : executeMessageList) {
             String errorMessage = executeMessage.getErrorMessage();
             if (StrUtil.isNotEmpty(errorMessage)) {
-                executeCodeResponse.setMessage(errorMessage);
                 //执行中存在错误
+                executeCodeResponse.setMessage(errorMessage);
+                //设置执行状态
                 executeCodeResponse.setStatus(3);
             }
 
@@ -197,6 +200,7 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
                 maxTime = Math.max(maxTime, time);
             }
         }
+        //设置执行输出信息
         executeCodeResponse.setOutputList(outputList);
         //正常执行完成
         if (outputList.size() == executeMessageList.size()) {
@@ -205,6 +209,7 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
         JudgeInfo judgeInfo = new JudgeInfo();
         judgeInfo.setTime(maxTime);
 
+        //设置执行过程信息
         executeCodeResponse.setJudgeInfo(judgeInfo);
 
         return executeCodeResponse;
